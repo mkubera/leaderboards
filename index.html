@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Leaderboards</title>
+	<link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/base-min.css">
+	<link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/buttons-min.css">
+	<link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/tables-min.css">
+	<link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/menus-min.css">
+	<link rel="stylesheet" media="screen" href="https://fontlibrary.org/face/unique" type="text/css"/>
+	<link rel="stylesheet" media="screen" href="https://fontlibrary.org/face/acari-sans" type="text/css"/>
+	<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+	<script src="http://underscorejs.org/underscore-min.js"></script>
+	
+	<style>
+		*, *:before, *:after {
+		    -webkit-box-sizing: box-border;
+		    -moz-box-sizing: box-border;
+		    box-sizing: box-border;
+			padding: 0;
+			margin: 0 auto;
+  		}
+		html {
+			font-size: 62.5%;
+		}
+		body {
+			font-size: 2.6vh;
+			font-family: 'AcariSansRegular';
+		}
+		.modal {
+			width: 100%;
+			height: 100%;
+			position: fixed; top:0;left:0;
+			background-color: #fff;
+			overflow-y: auto;
+		}
+		.btn-close {
+			position: fixed; top:1rem;right:2rem; z-index: 99;
+			color: #51cc86;
+			background-color: transparent;
+			font-size: 4rem;
+			font-weight: 700;
+			border: 0;
+			cursor: pointer;
+		}
+		.btn-primary {
+			background-color: #51cc86 !important;
+		}
+		.award {
+			width: 50vw;
+			padding: 2rem;
+			border-radius: .5rem;
+			margin: 2rem auto;
+			text-align: center;
+			cursor: pointer;
+		}
+		.award-name {
+			font-family: 'UniqueRegular';
+		}
+		.award-good { border: .4rem solid #51cc86; }
+		.award-bad { border: .4rem solid #bf1818; }
+		.award-good:hover { background-color: #51cc86; }
+		.award-bad:hover { background-color: #bf1818; }
+		
+		.tac { text-align: center; }
+		
+		#AppTitle {
+			font-family: 'UniqueRegular';
+		}
+		#SuggestNewAward {
+			margin: 3rem auto;
+		}
+	</style>
+</head>
+<body>
+	<div id="App">
+	
+		<!-- LEADERBOARDS -->
+		<div id="Leaderboards" v-if="show.leaderboards">
+			<div id="AppTitle" class="tac">
+				<h1>Leaderboards</h1>
+			</div>
+		
+			<table class="pure-table">
+			  <tr v-for="s in sortedStudents">
+			    <td>{{ s.name }}</td>
+				<td>{{ s.pts }} pts</td>
+				<td v-if="isAdmin"><button class="pure-button pure-button-primary btn-primary" v-on:click="givePoints(s.id)">Give award</button></td>
+				<td><button class="pure-button pure-button-primary btn-primary" v-on:click="showStudent(s.id)">History</button></td>
+			  </tr>
+			</table>
+			
+			<div id="SuggestNewAward" class="tac">
+				<button class="pure-button">Suggest new award</button>
+			</div>
+		</div>
+		
+		<!-- STUDENT -->
+		<div id="Student" v-if="show.student">
+			<button class="pure-button pure-button-primary btn-primary" v-on:click="showLeaderboards">show Leaderboards</button>
+			<div class="tac">
+				<h1>{{ currentStudent.name }}</h1>
+			</div>
+		
+			<table class="pure-table">
+			  <tr v-for="award in currentStudent.awards">
+			  	<td>{{ formatDate(award.created_at) }}</td>
+			  	<td>{{ award.name }}</td>
+			  	<td>{{ award.pts }} pts</td>
+			  </tr>
+			</table>
+		</div>
+		
+		<!-- MODAL: AWARDS -->
+		<div id="GivePointsModal" class="modal" v-if="show.modal.awards && isAdmin">
+			<div style="padding: 5rem 0">
+				<button class="btn-close" v-on:click="closeModal('awards')">x</button>
+				<div class="pure-menu">
+					<ul class="pure-menu-list">
+						<li class="pure-menu-item" v-for="a in awards" v-on:click="awardPoints(a.id)">
+							<div v-bind:class="modalAwardClass(a.pts)">
+								<h2 class="award-name">{{ a.name }}</h2>
+								<h4>{{ a.pts > 0 ? '+' : '' }}{{a.pts}} pts</h4> 
+								<br>
+								<p><i>{{ a.description }}</i></p>
+							</div>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<script>
+		var app = new Vue({
+			el: '#App',
+			methods: {
+				formatDate(d) {
+					var d2 = new Date(d);
+					var day = d.getUTCDate();
+					var month = d.getUTCMonth();
+					var year = d.getUTCFullYear();
+					
+					return CreateDate(day, month, year);
+				},
+				showLeaderboards: function() {
+					this.show.student = false;
+					this.show.leaderboards = true;
+					
+					this.studentId = 0;
+				},
+				showStudent: function(id) {
+					this.studentId = id;
+
+					this.show.leaderboards = false;
+					this.show.student = true;
+				},
+				modalAwardClass: function(pts) {
+					return pts > 0 ? 'award award-good' : 'award award-bad'; 
+				},
+				closeModal(kind) {
+				    switch(kind) {
+						case "awards": 
+							this.show.modal.awards = false;
+							break;
+					}
+				},
+				givePoints: function(id) {
+					this.studentId = id;
+					this.show.modal.awards = true;
+				},
+				awardPoints: function(awardId) {
+					var self = this;
+					self.students.map(function(s) {
+						if (s.id == self.studentId) {
+							var newAwards = s.awards.push({awardId: awardId, created_at: new Date()})
+							return newAwards;
+						}
+						return s;
+					})
+					// reset
+					this.studentId = 0;
+					this.show.modal.awards = false;
+				},
+			},
+			data: {
+				awards: [
+					{id: 1, name: 'Helper!', description: 'Helped another student.', pts: 10},
+					{id: 2, name: 'Librarian!', description: 'Used an external library of their own choice.', pts: 15},
+					{id: 3, name: 'Disruption!', description: 'Disruptive behaviour...', pts: -25},
+					{id: 4, name: 'PR virgin!', description: 'Submitted first Pull Request to a Github repo.', pts: 25},
+					{id: 5, name: 'Spotter!', description: 'Spotted a mistake in coursework materials.', pts: 10},
+					{id: 6, name: 'Foul language!', description: 'Foul language...', pts: -5},
+					{id: 7, name: 'El Contributor!', description: 'Contributed to an App.', pts: 50},
+					{id: 8, name: 'El Captain!', description: 'Built a web app not necessary to pass the course.', pts: 150},
+				],
+				students: [ // fetched from API
+					{id: 1, name: 'Joseph K.', pts: 0, 
+					 awards: [
+					   {created_at: new Date(), awardId: 1},
+					   {created_at: new Date(), awardId: 5},
+					 ]
+					},
+					{id: 2, name: 'Winston', pts: 0,
+					 awards: [
+					   {created_at: new Date(), awardId: 2},
+					 ]
+					},
+					{id: 3, name: 'Jayke C.', pts: 0,
+					 awards: [
+					   {created_at: new Date(), awardId: 3},
+					 ]	
+					},
+					{id: 4, name: 'Minnie M.', pts: 0,
+					 awards: [
+					   {created_at: new Date(), awardId: 4},
+					 ]
+					},
+				],
+				studentId: 0,
+				isAdmin: true,
+				show: {
+					leaderboards: true,
+					student: false,
+					modal: {
+						awards: false,
+					}
+				},
+			},
+			computed: {
+				currentStudent: function() {
+					var self = this;
+					var s = Object.assign({}, self.students[self.studentId -1]);
+
+					s.awards = s.awards.map(function(a) {
+						var awardDetails = self.awards.filter(function(aw) { return aw.id === a.awardId; })[0];
+						var newAwards = Object.assign({created_at: a.created_at}, awardDetails)
+						return newAwards;
+					});
+
+					return s;
+				},
+				sortedStudents: function() {
+					return _.sortBy(this.calculatedStudents, 'pts').reverse();
+				},
+				calculatedStudents: function() {
+				
+					//console.log(this.students)
+				
+					var self = this;
+					
+					return self.students.map(function(s) {
+
+						var ptsFromAwards = s.awards.map(function(a) {
+							return self.awards.filter(function(aw) { return aw.id === a.awardId; })[0].pts;
+						});
+
+						var newPts = ptsFromAwards.reduce(function(acc, num) { return acc + num; }, 0);
+
+						s.pts = newPts;
+						return s;
+
+					});
+				},
+			}
+		})
+		
+		function CreateDate(day, month, year) {
+			var newDay = day;
+			if (newDay === 1 || newDay === 21 || newDay === 31) { newDay += "st" }
+			else if (newDay === 2 || newDay === 22) { newDay += "nd" }
+			else if (newDay === 3 || newDay === 23) { newDay += "rd" }
+			else { newDay += "th" }
+
+			var newMonth = "";
+				switch(month) {
+					case 0: newMonth = "January"; break;
+					case 1: newMonth = "February"; break;
+					case 2: newMonth = "March"; break;
+					case 3: newMonth = "April"; break;
+					case 4: newMonth = "May"; break;
+					case 5: newMonth = "June"; break;
+					case 6: newMonth = "July"; break;
+					case 7: newMonth = "August"; break;
+					case 8: newMonth = "September"; break;
+					case 9: newMonth = "October"; break;
+					case 10: newMonth = "November"; break;
+					case 11: newMonth = "December"; break;
+				}
+				
+			return newDay + " of " + newMonth + ", " + year;
+		}
+	</script>
+</body>
+</html>
