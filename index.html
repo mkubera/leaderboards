@@ -82,15 +82,19 @@
 			</div>
 		
 			<table class="pure-table">
-			  <tr v-for="s in sortedStudents">
+			  <tr v-for="s in sortedStudents">  <!-- loops over sortedStudents -->
 			    <td>{{ s.name }}</td>
 				<td>{{ s.pts }} pts</td>
-				<td v-if="isAdmin"><button class="pure-button pure-button-primary btn-primary" v-on:click="givePoints(s.id)">Give award</button></td>
-				<td><button class="pure-button pure-button-primary btn-primary" v-on:click="showStudent(s.id)">History</button></td>
+				<td v-if="isAdmin">  <!-- display only if user is an admin -->
+          <button class="pure-button pure-button-primary btn-primary" v-on:click="givePoints(s.id)">Give award</button>
+        </td>
+				<td>
+          <button class="pure-button pure-button-primary btn-primary" v-on:click="showStudent(s.id)">History</button>
+        </td>
 			  </tr>
 			</table>
 			
-			<div id="SuggestNewAward" class="tac">
+			<div id="SuggestNewAward" class="tac">  <!-- TODO: needs to open a new modal and submit a new award suggestion -->
 				<button class="pure-button">Suggest new award</button>
 			</div>
 		</div>
@@ -132,44 +136,47 @@
 	</div>
 	
 	<script>
-		var app = new Vue({
-			el: '#App',
+		var app = new Vue({  // initiates a Vue app
+			el: '#App',        // points to a div to inject the app there
 			methods: {
-				formatDate(d) {
+				formatDate(d) {  // modern JS; equivalent to 'formatDate: function(d) { ... }'
 					var d2 = new Date(d);
 					var day = d.getUTCDate();
 					var month = d.getUTCMonth();
 					var year = d.getUTCFullYear();
 					
-					return CreateDate(day, month, year);
+					return CreateDate(day, month, year);  // creates a nice, human-friendly string
 				},
-				showLeaderboards: function() {
+				showLeaderboards: function() {  // shows Leaderboards "web page"
 					this.show.student = false;
 					this.show.leaderboards = true;
 					
 					this.studentId = 0;
 				},
-				showStudent: function(id) {
+				showStudent: function(id) {  // shows Student "web page"
 					this.studentId = id;
 
 					this.show.leaderboards = false;
 					this.show.student = true;
 				},
-				modalAwardClass: function(pts) {
+				modalAwardClass: function(pts) {  // Vue is a bit awkward here, but that's the only way I found
+					                                // to have a css class used conditionally
 					return pts > 0 ? 'award award-good' : 'award award-bad'; 
 				},
-				closeModal(kind) {
-				    switch(kind) {
+				closeModal(kind) {  // closes a modal box
+					                  // I got myself a bit ahead here; the code is prepared for several modals
+				  switch(kind) {
 						case "awards": 
 							this.show.modal.awards = false;
 							break;
 					}
 				},
-				givePoints: function(id) {
+				givePoints: function(id) {  // opens award modal box; 
+					                          // TODO: refactor it to 'openModal(kind)' method for consistency
 					this.studentId = id;
 					this.show.modal.awards = true;
 				},
-				awardPoints: function(awardId) {
+				awardPoints: function(awardId) {  // award points to a student and close the modal
 					var self = this;
 					self.students.map(function(s) {
 						if (s.id == self.studentId) {
@@ -183,8 +190,11 @@
 					this.show.modal.awards = false;
 				},
 			},
-			data: {
-				awards: [
+			data: {  // everything here is a dummy data that will eventually be fetched from the server as JSON (API)
+               // and translated locally from JSON to JS
+               // [a good reference:] https://stackoverflow.com/questions/4935632/parse-json-in-javascript#4935684
+               // I haven't use AJAX fetching in Vue yet, perhaps Vue translates data behind the scenes (don't know yet :))
+				awards: [  // list of dummy awards; fetched from API
 					{id: 1, name: 'Helper!', description: 'Helped another student.', pts: 10},
 					{id: 2, name: 'Librarian!', description: 'Used an external library of their own choice.', pts: 15},
 					{id: 3, name: 'Disruption!', description: 'Disruptive behaviour...', pts: -25},
@@ -194,7 +204,7 @@
 					{id: 7, name: 'El Contributor!', description: 'Contributed to an App.', pts: 50},
 					{id: 8, name: 'El Captain!', description: 'Built a web app not necessary to pass the course.', pts: 150},
 				],
-				students: [ // fetched from API
+				students: [ // dummy students data; fetched from API
 					{id: 1, name: 'Joseph K.', pts: 0, 
 					 awards: [
 					   {created_at: new Date(), awardId: 1},
@@ -217,6 +227,7 @@
 					 ]
 					},
 				],
+        // various 'state' data; could probably be under one 'state: {}' object
 				studentId: 0,
 				isAdmin: true,
 				show: {
@@ -227,45 +238,54 @@
 					}
 				},
 			},
-			computed: {
-				currentStudent: function() {
+			computed: {  // Vue has the idea of 'computed' methods. These are then used in html
+                   // the same way properties from 'data' are used
+				currentStudent: function() {  // currently chosen to display student; shows details
 					var self = this;
-					var s = Object.assign({}, self.students[self.studentId -1]);
+					var s = Object.assign({}, self.students[self.studentId -1]);  // clones a student so that the student record
+                                                                        // doesn't get changed; JS, right? ;-)
 
-					s.awards = s.awards.map(function(a) {
-						var awardDetails = self.awards.filter(function(aw) { return aw.id === a.awardId; })[0];
-						var newAwards = Object.assign({created_at: a.created_at}, awardDetails)
-						return newAwards;
+					s.awards = s.awards.map(function(a) {  // a student.awards records keep only 'awardId' and 'created_at'
+                                                 // we need to make sure that we get full award data from 'data.awards'
+                                                 // so we map (loop) over every student
+						var awardDetails = self.awards.filter(function(aw) { return aw.id === a.awardId; })[0];  // then we filter to get the
+                                                                                                     // details of each award
+						var newAwards = Object.assign({created_at: a.created_at}, awardDetails)  // finally, we create a new object that will have:
+                                                                                     // 1. created_at timestamp
+                                                                                     // 2. full award details
+						// we will need these data to properly show the history of awards for every student :)
+            // and the reason we only keep 'awardId' in 'student.awards' record is to not duplicate data
+            // that we already have in 'data.awards'
+            return newAwards;
 					});
 
 					return s;
 				},
-				sortedStudents: function() {
+				sortedStudents: function() {  // students sorted in desc order (most points == highest place)
 					return _.sortBy(this.calculatedStudents, 'pts').reverse();
 				},
-				calculatedStudents: function() {
-				
-					//console.log(this.students)
-				
-					var self = this;
+				calculatedStudents: function() {  // returns students with calculated (summed) points
+					var self = this;  // self trick; 'this' changes depending on context;
+                            // simple explanation: https://stackoverflow.com/questions/962033/what-underlies-this-javascript-idiom-var-self-this#962040
+                            // more on 'this': https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/this
 					
-					return self.students.map(function(s) {
+					return self.students.map(function(s) {  // loops over students
 
-						var ptsFromAwards = s.awards.map(function(a) {
-							return self.awards.filter(function(aw) { return aw.id === a.awardId; })[0].pts;
+						var ptsFromAwards = s.awards.map(function(a) {  // loops over each student's awards
+							return self.awards.filter(function(aw) { return aw.id === a.awardId; })[0].pts;  // returns 'pts' from an award
 						});
 
-						var newPts = ptsFromAwards.reduce(function(acc, num) { return acc + num; }, 0);
+						var newPts = ptsFromAwards.reduce(function(acc, num) { return acc + num; }, 0);  // sums all 'pts'
 
 						s.pts = newPts;
-						return s;
+						return s;  // returns student record with updated 'pts'
 
 					});
 				},
 			}
 		})
 		
-		function CreateDate(day, month, year) {
+		function CreateDate(day, month, year) {  
 			var newDay = day;
 			if (newDay === 1 || newDay === 21 || newDay === 31) { newDay += "st" }
 			else if (newDay === 2 || newDay === 22) { newDay += "nd" }
@@ -288,7 +308,7 @@
 					case 11: newMonth = "December"; break;
 				}
 				
-			return newDay + " of " + newMonth + ", " + year;
+			return newDay + " of " + newMonth + ", " + year;  // creates a nice, human-readable string
 		}
 	</script>
 </body>
