@@ -292,21 +292,10 @@
 			else if (newDay === 3 || newDay === 23) { newDay += "rd" }
 			else { newDay += "th" }
 
-			var newMonth = "";
-				switch(month) {
-					case 0: newMonth = "January"; break;
-					case 1: newMonth = "February"; break;
-					case 2: newMonth = "March"; break;
-					case 3: newMonth = "April"; break;
-					case 4: newMonth = "May"; break;
-					case 5: newMonth = "June"; break;
-					case 6: newMonth = "July"; break;
-					case 7: newMonth = "August"; break;
-					case 8: newMonth = "September"; break;
-					case 9: newMonth = "October"; break;
-					case 10: newMonth = "November"; break;
-					case 11: newMonth = "December"; break;
-				}
+			const months = ["January", "February", "March", "April",
+											"May", "June", "July", "August",
+											"September", "October", "November", "December"];
+			var newMonth = months[month];
 				
 			return newDay + " of " + newMonth + ", " + year;  // creates a nice, human-readable string
 		}
