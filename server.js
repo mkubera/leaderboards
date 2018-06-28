@@ -30,7 +30,7 @@ app.post('/api/award-a-student', (req, res) => {
   res.json({ status: 200, msg: 'Student awarded successfully' })
 })
 
-app.post('/api/suggest-award', (req, res) => {
+app.post('/api/suggest-an-award', (req, res) => {
   // TODO: insert the award into DB
   // body: {
   //   title: STRING,
